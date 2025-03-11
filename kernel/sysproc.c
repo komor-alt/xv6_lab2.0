@@ -6,7 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-
+#include "sysinfo.h"
 uint64
 sys_exit(void)
 {
@@ -104,4 +104,20 @@ return -1;
 // 获取用户程序传入的数据
 //设置调用进程的kama_syscall trace掩码mask
 myproc()->kama_syscall_trace = mask;return 0;
+}
+
+uint64
+sys_sysinfo()
+{
+   struct sysinfo info;
+   kama_freebytes(&info.freemem);
+   kama_procnum(&info.nproc);
+
+   uint64 dstaddr;
+   argaddr(0,&dstaddr);
+
+   if(copyout(myproc()->pagetable,dstaddr,(char*)&info,sizeof(info))<0) 
+   return -1;
+
+   return 0;
 }

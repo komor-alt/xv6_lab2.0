@@ -126,7 +126,7 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
-
+  p->kama_syscall_trace = 0;
   return p;
 }
 
@@ -296,7 +296,7 @@ fork(void)
   np->state = RUNNABLE;
 
   release(&np->lock);
-
+  np->kama_syscall_trace = p ->kama_syscall_trace;
   return pid;
 }
 

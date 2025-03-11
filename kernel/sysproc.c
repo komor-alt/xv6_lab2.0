@@ -95,3 +95,13 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+uint64
+sys_trace(void)
+{
+int mask;
+if(argint(0,&mask)<0)
+return -1;
+// 获取用户程序传入的数据
+//设置调用进程的kama_syscall trace掩码mask
+myproc()->kama_syscall_trace = mask;return 0;
+}

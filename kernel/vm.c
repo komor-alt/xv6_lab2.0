@@ -18,12 +18,13 @@ extern char trampoline[]; // trampoline.S
 /*
  * create a direct-map page table for the kernel.
  */
+//该函数初始化内核的页表，并建立内核空间的虚拟内存到物理内存的直接映射。
 void
 kvminit()
 {
-  kernel_pagetable = (pagetable_t) kalloc();
+  kernel_pagetable = (pagetable_t) kalloc();//使用 kalloc() 分配一页内存作为页表，并将其清零。
   memset(kernel_pagetable, 0, PGSIZE);
-
+  //通过 kvmmap() 函数将不同的硬件设备（如 UART、VIRTIO、CLINT、PLIC）映射到内核的虚拟地址空间。
   // uart registers
   kvmmap(UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
@@ -40,8 +41,9 @@ kvminit()
   kvmmap(KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
 
   // map kernel data and the physical RAM we'll make use of.
+  //将内核代码段（.text）映射为只读和可执行，将内核数据段（.data 和 .bss）映射为可读写
   kvmmap((uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
-
+  //将跳板代码（trampoline）映射到内核的最高虚拟地址。
   // map the trampoline for trap entry/exit to
   // the highest virtual address in the kernel.
   kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
@@ -49,7 +51,7 @@ kvminit()
 
 // Switch h/w page table register to the kernel's page table,
 // and enable paging.
-void
+void //该函数将硬件页表寄存器（satp）设置为内核的页表，并刷新 TLB（Translation Lookaside Buffer），启用分页机制。
 kvminithart()
 {
   w_satp(MAKE_SATP(kernel_pagetable));
@@ -68,6 +70,7 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
+//该函数用于遍历页表，返回给定虚拟地址对应的页表项（PTE）。
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
@@ -91,6 +94,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 // Look up a virtual address, return the physical address,
 // or 0 if not mapped.
 // Can only be used to look up user pages.
+//该函数用于查找用户空间虚拟地址对应的物理地址。
 uint64
 walkaddr(pagetable_t pagetable, uint64 va)
 {
@@ -114,7 +118,7 @@ walkaddr(pagetable_t pagetable, uint64 va)
 // add a mapping to the kernel page table.
 // only used when booting.
 // does not flush TLB or enable paging.
-void
+void //该函数用于在内核页表中添加虚拟地址到物理地址的映射。
 kvmmap(uint64 va, uint64 pa, uint64 sz, int perm)
 {
   if(mappages(kernel_pagetable, va, sz, pa, perm) != 0)
@@ -271,7 +275,8 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
-void
+void //- 该函数用于递归释放页表页。
+//遍历页表项，释放所有子页表页，并最终释放当前页表页。
 freewalk(pagetable_t pagetable)
 {
   // there are 2^9 = 512 PTEs in a page table.
@@ -439,4 +444,35 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+int
+slove_pagetable(pagetable_t pagetable,int depth)
+{
+  // there are 2^9 = 512 PTEs in a page table.
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if(pte & PTE_V) // means there is child
+    {
+      printf("..");
+      for(int j =0;j < depth ; ++j)
+      {
+          printf(" ..");
+      }
+      printf("%d: pte %p pa %p\n",i,pte,PTE2PA(pte));
+
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0)
+      {
+         uint64 child = PTE2PA(pte);
+         slove_pagetable((pagetable_t)child,depth+1);
+      }
+    }
+  }
+  return 0;
+}
+
+int vmprint(pagetable_t pagetable)
+{
+  // there are 2^9 = 512 PTEs in a page table.
+  printf("page table %p\n",pagetable);
+  return slove_pagetable(pagetable,0);
 }

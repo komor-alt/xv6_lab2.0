@@ -22,8 +22,6 @@ extern char trampoline[]; // trampoline.S
 void
 kvminit()
 {
-  kernel_pagetable = (pagetable_t) kalloc();//使用 kalloc() 分配一页内存作为页表，并将其清零。
-  memset(kernel_pagetable, 0, PGSIZE);
   //通过 kvmmap() 函数将不同的硬件设备（如 UART、VIRTIO、CLINT、PLIC）映射到内核的虚拟地址空间。
   // uart registers
   kvmmap(UART0, UART0, PGSIZE, PTE_R | PTE_W);

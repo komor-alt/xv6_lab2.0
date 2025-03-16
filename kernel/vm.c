@@ -17,8 +17,8 @@ extern char trampoline[]; // trampoline.S
 
 void kama_kvm_map_pagetable(pagetable_t pgtbl)
 {
-    kernel_pagetable = (pagetable_t) kalloc();
-  memset(kernel_pagetable, 0, PGSIZE);
+  //   kernel_pagetable = (pagetable_t) kalloc();
+  // memset(kernel_pagetable, 0, PGSIZE);
 
   // uart registers
   kvmmap(pgtbl,UART0, UART0, PGSIZE, PTE_R | PTE_W);//在内核页表中添加一个虚拟地址到物理地址的映射。

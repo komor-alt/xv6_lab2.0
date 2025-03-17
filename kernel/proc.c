@@ -236,8 +236,8 @@ userinit(void)
   // allocate one user page and copy init's instructions
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
-  p->sz = PGSIZE;
-
+  p->sz = PGSIZE;  
+cpoymappings(p->pagetable,p->kama_kernelpgtbl,0,p->sz);
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
@@ -252,7 +252,7 @@ userinit(void)
 
 // Grow or shrink user memory by n bytes.
 // Return 0 on success, -1 on failure.
-int
+int//用于进程减少或增长其内存的系统调用
 growproc(int n)
 {
   uint sz;
@@ -260,9 +260,17 @@ growproc(int n)
 
   sz = p->sz;
   if(n > 0){
-    if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
+    uint64 newsz;
+    if((newsz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
       return -1;
     }
+    // 复制一份到内核页表
+    if(cpoymappings(p->pagetable, p->kama_kernelpgtbl, sz, n) == 0 )
+    {
+      uvmdealloc(p->pagetable,newsz,sz);
+      return -1;
+    }    
+    sz = newsz;
   } else if(n < 0){
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
@@ -285,7 +293,8 @@ fork(void)
   }
 
   // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0 || 
+  cpoymappings(np->pagetable,np->kama_kernelpgtbl,0,p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;
@@ -293,7 +302,7 @@ fork(void)
   np->sz = p->sz;
 
   np->parent = p;
-
+   
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 

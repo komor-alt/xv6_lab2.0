@@ -27,14 +27,14 @@ void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
-  freerange(end, (void*)PHYSTOP);
+  freerange(end, (void*)PHYSTOP);//将内存添加到空闲列表中
 }
 
 void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint64)pa_start);
+  p = (char*)PGROUNDUP((uint64)pa_start); //确保它只释放对齐的物理地址 4096整数倍 向上取整 
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
 }
@@ -58,7 +58,7 @@ kfree(void *pa)
 
   acquire(&kmem.lock);
   r->next = kmem.freelist;
-  kmem.freelist = r;
+  kmem.freelist = r; //头插法到空闲链表中
   release(&kmem.lock);
 }
 

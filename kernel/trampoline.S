@@ -26,8 +26,8 @@ uservec:
         
 	# swap a0 and sscratch
         # so that a0 is TRAPFRAME
-        csrrw a0, sscratch, a0
-
+        csrrw a0, sscratch, a0  #将a0寄存器与sscratch寄存器的值交换，sscratch寄存器指向用户进程的trapframe,这样a0现在指向trapframe
+        #以下sd指令，将用户态的寄存器（如ura,sp,gp）保存到trapframe中，以便在返回用户态时恢复
         # save the user registers in TRAPFRAME
         sd ra, 40(a0)
         sd sp, 48(a0)
@@ -63,18 +63,18 @@ uservec:
 	# save the user a0 in p->trapframe->a0
         csrr t0, sscratch
         sd t0, 112(a0)
-
+        #切换到内核态
         # restore kernel stack pointer from p->trapframe->kernel_sp
-        ld sp, 8(a0)
+        ld sp, 8(a0)#从trapframe中家在内核栈指针到sp寄存器
 
         # make tp hold the current hartid, from p->trapframe->kernel_hartid
-        ld tp, 32(a0)
+        ld tp, 32(a0)#从trapframe中加载当前硬件ID到tp寄存器，
 
         # load the address of usertrap(), p->trapframe->kernel_trap
-        ld t0, 16(a0)
+        ld t0, 16(a0)#家在usertrap函数的地址到t0寄存器，usertrap是内核处理陷阱的汉书
 
         # restore kernel page table from p->trapframe->kernel_satp
-        ld t1, 0(a0)
+        ld t1, 0(a0)#将内核也表加载到t1寄存器中，并将其写入satp寄存器，切换到内核也表
         csrw satp, t1
         sfence.vma zero, zero
 
@@ -82,10 +82,10 @@ uservec:
         # table does not specially map p->tf.
 
         # jump to usertrap(), which does not return
-        jr t0
+        jr t0  
 
 .globl userret
-userret:
+userret:#从内核态切换回用户态的入口点，usertrapret（）函数会调用userret来完成切换。
         # userret(TRAPFRAME, pagetable)
         # switch from kernel to user.
         # usertrapret() calls here.
@@ -101,7 +101,7 @@ userret:
         ld t0, 112(a0)
         csrw sscratch, t0
 
-        # restore all but a0 from TRAPFRAME
+        # restore all but a0 from TRAPFRAME  恢复用户态的寄存器
         ld ra, 40(a0)
         ld sp, 48(a0)
         ld gp, 56(a0)
@@ -133,7 +133,7 @@ userret:
         ld t5, 272(a0)
         ld t6, 280(a0)
 
-	# restore user a0, and save TRAPFRAME in sscratch
+	# 将保存的用户 a0 寄存器值从 trapframe 中恢复，并将 trapframe 地址保存到 sscratch 寄存器中。
         csrrw a0, sscratch, a0
         
         # return to user mode and user pc.

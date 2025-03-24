@@ -484,3 +484,16 @@ sys_pipe(void)
   }
   return 0;
 }
+int sys_sigalarm(void)
+{
+   int n;
+   uint64 fn;
+   if(argint(0,&n) < 0) return -1;
+   if(argaddr(1,&fn) < 0) return -1;
+
+   return sigalarm(n,(void(*))(fn));
+}
+int sys_sigreturn(void)
+{
+   return sigreturn();
+}

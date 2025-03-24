@@ -145,6 +145,9 @@ void            trapinit(void);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
+//设置进程中时间的相关属性   函数指针
+int sigalarm(int ticks, void (*handler)());
+int sigreturn();
 
 // uart.c
 void            uartinit(void);

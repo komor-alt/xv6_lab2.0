@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "tuple": "c",
+        "mutex": "c",
+        "condition_variable": "c"
+    }
+}
